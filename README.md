@@ -1,90 +1,212 @@
 # Nutritional Insights — Diet Analysis Cloud Dashboard
 
-**Live app:** https://witty-pond-0e08a300f.6.azurestaticapps.net/
+**Live App:** https://witty-pond-0e08a300f.6.azurestaticapps.net/
 
-This project is a cloud-based data analytics dashboard designed to process raw dietary datasets and transform them into meaningful insights.
+A cloud-based data analytics dashboard that processes dietary datasets and presents them as interactive insights.
 
-The system simulates a real-world data pipeline where raw data is ingested, cleaned, aggregated, and served through APIs to support user decision-making (e.g., understanding diet patterns and nutritional distribution).
+This project focuses on building a simple but realistic data pipeline in the cloud. Raw data is ingested from storage, processed using Python, and exposed through APIs to support visualization and analysis.
 
-Built using Azure serverless technologies, the platform focuses on scalability, performance optimization, and efficient data processing.
+The goal is to demonstrate how data flows through a system — from ingestion to transformation to serving — while keeping performance and maintainability in mind.
 
 ---
 
-## Table of contents
+## Table of Contents
 
-- Architecture
-- Features
-- Repository layout
-- Backend (Azure Functions)
-- Frontend (React + Vite)
-- Environment variables
-- Supabase configuration
-- Deployment
-- Local development
-- API reference
-- Troubleshooting
-- License
+- Overview  
+- Architecture  
+- Design Decisions  
+- Data Pipeline  
+- Features  
+- Backend  
+- Frontend  
+- Environment Variables  
+- Deployment  
+- API Reference  
+- Performance  
+
+---
+
+## Overview
+
+This project demonstrates an end-to-end workflow for processing and serving analytical data:
+
+- Load raw CSV data from cloud storage  
+- Clean and transform data using pandas  
+- Precompute aggregated results  
+- Store processed output as JSON  
+- Serve data via API endpoints  
+- Display insights through a web dashboard  
 
 ---
 
 ## Architecture
 
-This system follows a cloud-native data pipeline architecture:
+The system follows a cloud-native, event-driven design:
 
 Raw Data (Blob Storage)  
-→ Data Processing (Azure Functions)  
+→ Data Processing (Azure Function)  
 → Cached Results (JSON in Blob Storage)  
-→ API Layer (HTTP endpoints)  
+→ API Layer (Azure Functions)  
 → Frontend Dashboard (React)
 
-| Layer | Service | Role |
-|--------|---------|------|
-| UI | Azure Static Web Apps | Hosts the React SPA with CI/CD via GitHub Actions |
-| API | Azure Functions (Python) | REST endpoints and blob-triggered processing |
-| Data | Azure Blob Storage | Stores raw CSV, cleaned data, and cached results |
-| Auth | Supabase | Email/password and OAuth authentication |
+| Layer     | Technology                   | Responsibility                    |
+|----------|------------------------------|----------------------------------|
+| Storage  | Azure Blob Storage           | Store raw and processed data     |
+| Compute  | Azure Functions (Python)     | Data processing and API          |
+| API      | Azure Functions (HTTP)       | Serve processed data             |
+| Frontend | React + TypeScript           | Visualization layer              |
+| Hosting  | Azure Static Web Apps        | Frontend deployment              |
+| Auth     | Supabase                     | User authentication              |
 
-### Design Considerations
+---
 
-- Azure Functions are used for serverless execution to support scalability and reduce infrastructure management
-- Blob-triggered processing ensures data is recomputed only when the dataset changes
-- Caching results as JSON avoids repeated heavy computations and improves response time
-- Separation of frontend and backend improves maintainability and flexibility
+## Design Decisions
+
+### Cache-first approach
+
+Instead of processing the dataset on every request, results are precomputed and stored as JSON.
+
+This reduces repeated computation and significantly improves API response time.
+
+### Event-driven processing
+
+A Blob trigger is used to detect changes in the dataset.
+
+Data is processed only when the source file changes, avoiding unnecessary execution.
+
+### Separation of concerns
+
+- Data processing logic is isolated in backend functions  
+- API layer serves only processed data  
+- Frontend focuses on visualization  
+
+This makes the system easier to maintain and extend.
+
+### Serverless architecture
+
+Azure Functions are used to handle both processing and API layers.
+
+This removes the need to manage infrastructure and allows the system to scale automatically.
+
+---
+
+## Data Pipeline
+
+The pipeline follows a simple ETL flow:
+
+### Extract
+
+- Read raw CSV data from Blob Storage  
+
+### Transform
+
+- Clean data (handle missing values, normalize fields)  
+- Aggregate data by diet type  
+- Compute metrics (protein, carbs, fat)  
+
+### Load
+
+- Store processed results as JSON in Blob Storage  
+- API reads from cached JSON instead of recomputing  
 
 ---
 
 ## Features
 
-### Data Processing & Insights
+### Data Processing
 
-- Processes raw CSV datasets using Python (pandas) for data cleaning and aggregation
-- Extracts structured insights such as diet distribution and nutritional metrics
-- Enables users to explore dietary patterns and make informed decisions through visualization
+- Cleans and transforms raw datasets using pandas  
+- Aggregates data for analysis  
+- Handles inconsistent or missing data  
 
-### Performance Optimization
+### Analytics
 
-- Implements caching using precomputed JSON stored in Blob Storage
-- Reduces redundant computation and improves API response performance
-- Uses blob-triggered updates so processing only occurs when source data changes
+- Displays diet distribution  
+- Shows nutritional breakdown  
+- Supports comparison between diet types  
 
-### Cloud Architecture
+### API
 
-- Built on Azure serverless infrastructure for scalable and event-driven processing
-- Uses Blob Storage for raw data, processed outputs, and cached results
-- Frontend deployed via Azure Static Web Apps with CI/CD pipeline
+- RESTful endpoints for accessing processed data  
+- Supports filtering, search, and pagination  
 
-### Data Interaction
+### Frontend
 
-- Supports filtering by diet type
-- Provides keyword search (recipe name / cuisine)
-- Implements paginated API endpoints for efficient data retrieval
+- Interactive dashboard built with React  
+- Data visualization using charts  
+- Responsive UI with filtering options  
 
-### Authentication & Security
+### Authentication
 
-- Uses Supabase Auth (email + OAuth)
-- Restricts dashboard access to authenticated users
-- Sensitive data (passwords) handled securely by the auth provider
+- Supabase authentication  
+- Restricts access to authorized users  
 
 ---
 
-## Repository layout
+## Backend (Azure Functions)
+
+**Stack:** Python, Azure Functions, pandas  
+
+Responsibilities:
+
+- ETL processing  
+- Data aggregation  
+- API endpoints  
+
+Blob storage structure:
+
+- Input: `datasets/All_Diets.csv`
+- Output:
+  - `cleaned/cleaned_diets.csv`
+  - `cache/dashboard_summary.json`
+
+Run locally:
+
+```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+func start
+Frontend
+
+Stack:
+
+React
+TypeScript
+Vite
+Chart.js
+
+Run locally:
+
+cd frontend
+npm install
+npm run dev
+Environment Variables
+VITE_API_BASE_URL=http://localhost:7071/api
+VITE_SUPABASE_URL=your_project_url
+VITE_SUPABASE_ANON_KEY=your_key
+Deployment
+
+Frontend:
+
+Azure Static Web Apps (GitHub Actions)
+
+Backend:
+
+func azure functionapp publish <FUNCTION_APP_NAME>
+API Reference
+
+Base URL:
+https://diet-chart-dashboard-318.azurewebsites.net/api
+
+Method	Endpoint	Description
+GET	/dashboard-summary	Returns aggregated data
+GET	/recipes	Supports filtering and paging
+Performance
+Precomputed cache reduces repeated computation
+Event-driven processing avoids unnecessary execution
+API response is significantly faster than on-demand processing
+License
+
+Built as part of a cloud computing project using Azure serverless technologies.
